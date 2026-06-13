@@ -22,6 +22,7 @@ function GlobalStyles() {
   return (
     <style>{`
       *, *::before, *::after { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
       html, body, #root { max-width: 100%; overflow-x: hidden; }
       img, svg { max-width: 100%; }
       input, textarea, button { max-width: 100%; }
@@ -914,7 +915,6 @@ export default function App() {
   const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
   const [status, setStatus] = useState("");
-  const [showSettings, setShowSettings] = useState(false);
 
   const C = darkMode ? DARK : LIGHT;
 
@@ -1013,34 +1013,12 @@ export default function App() {
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <button
-            onClick={() => setShowSettings(s => !s)}
-            style={{ background: showSettings ? C.primaryLight : "transparent", color: C.textSub, border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontSize: 14, fontWeight: 600, whiteSpace: "nowrap" }}>
-            ⚙️ <span className="rae-nav-tab-label">API Config</span>
-          </button>
-          <button
             onClick={() => setDarkMode(d => !d)}
             style={{ background: "transparent", color: C.textSub, border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontSize: 16 }}>
             {darkMode ? "☀️" : "🌙"}
           </button>
         </div>
       </nav>
-
-      {/* SETTINGS DRAWER - API key now handled via backend */}
-      {showSettings && (
-        <div style={{
-          background: C.surface, borderBottom: `1px solid ${C.border}`,
-          padding: "16px clamp(12px, 4vw, 28px)", display: "flex", alignItems: "center",
-          gap: 12, flexWrap: "wrap",
-        }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: C.textSub }}>API Configuration:</span>
-          <span style={{ fontSize: 12, color: C.textSub }}>
-            The OpenRouter API key is now configured on the backend (server.js).
-            Please set the OPENROUTER_API_KEY environment variable in your .env file.
-            If you encounter errors, try changing the model in src/ResumeAnalyzer.jsx (line 73).
-          </span>
-          <button onClick={() => setShowSettings(false)} style={{ ...btnPrimary, padding: "8px 16px", fontSize: 13 }}>OK</button>
-        </div>
-      )}
 
       {/* MAIN CONTENT */}
       <main style={{ maxWidth: 1020, margin: "0 auto", padding: "clamp(16px, 5vw, 28px) clamp(12px, 4vw, 20px)" }}>
@@ -1218,7 +1196,7 @@ export default function App() {
               <ol style={{ margin: 0, paddingLeft: 20, color: C.textSub, fontSize: 14, lineHeight: 2 }}>
                 <li>Get a free OpenRouter API key at <span style={{ color: C.primary, cursor: "pointer" }}
                   onClick={() => window.open("https://openrouter.ai/keys")}>openrouter.ai</span></li>
-                <li>Click ⚙️ Settings and paste your API key</li>
+                <li>Add it as <code>OPENROUTER_API_KEY</code> in your server's <code>.env</code> file</li>
                 <li>Upload your resume (PDF, DOCX, TXT)</li>
                 <li>Paste a job description you're applying for</li>
                 <li>Click Analyze and explore your results!</li>
