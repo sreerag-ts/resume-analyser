@@ -1,5 +1,41 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
+// ─── RESPONSIVE HELPERS ────────────────────────────────────────────────────────
+function useBreakpoint() {
+  const [width, setWidth] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth : 1200
+  );
+  useEffect(() => {
+    const onResize = () => setWidth(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return {
+    width,
+    isMobile: width < 640,
+    isTablet: width >= 640 && width < 1024,
+  };
+}
+
+// Global responsive styles applied app-wide
+function GlobalStyles() {
+  return (
+    <style>{`
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body, #root { max-width: 100%; overflow-x: hidden; }
+      img, svg { max-width: 100%; }
+      input, textarea, button { max-width: 100%; }
+      .rae-scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
+      .rae-scroll-x::-webkit-scrollbar { height: 4px; }
+      @media (max-width: 640px) {
+        .rae-nav-tab-label { display: none; }
+        .rae-nav-tabs button { padding: 7px 10px !important; font-size: 12px !important; }
+        .rae-logo-text { display: none; }
+      }
+    `}</style>
+  );
+}
+
 // ─── THEME ───────────────────────────────────────────────────────────────────
 const LIGHT = {
   bg: "#F8F7FF",
@@ -330,7 +366,7 @@ function RadarChart({ scores, C }) {
   };
   const dataPts = cats.map((k, i) => pt(i, scores?.[k] || 0));
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ maxWidth: "100%", height: "auto" }}>
       {[25, 50, 75, 100].map(lvl => (
         <polygon key={lvl}
           points={cats.map((_, i) => pt(i, lvl).join(",")).join(" ")}
@@ -411,6 +447,7 @@ function Spinner({ C }) {
 
 // ─── ANALYSIS RESULT ─────────────────────────────────────────────────────────
 function AnalysisResult({ result, jobTitle, resumeText, jdText, C }) {
+  const { isMobile } = useBreakpoint();
   const [activeTab, setActiveTab] = useState("overview");
   const [tool, setTool] = useState(null);
   const [toolContent, setToolContent] = useState("");
@@ -429,7 +466,7 @@ function AnalysisResult({ result, jobTitle, resumeText, jdText, C }) {
 
   const card = {
     background: C.surface, border: `1px solid ${C.border}`,
-    borderRadius: 12, padding: "20px 22px", boxShadow: C.shadow,
+    borderRadius: 12, padding: "clamp(14px, 4vw, 20px) clamp(14px, 4vw, 22px)", boxShadow: C.shadow,
     marginBottom: 14, transition: "all 0.2s",
   };
 
@@ -488,15 +525,15 @@ function AnalysisResult({ result, jobTitle, resumeText, jdText, C }) {
             </div>
             <p style={{ margin: 0, fontSize: 14, color: C.textSub, lineHeight: 1.7, maxWidth: 600 }}>{summary}</p>
           </div>
-          <div style={{ display: "flex", gap: 12, alignItems: "center", flexShrink: 0 }}>
+          <div style={{ display: "flex", gap: isMobile ? 8 : 12, alignItems: "center", flexShrink: 0 }}>
             <div style={{ textAlign: "center" }}>
-              <ScoreRing score={score} size={80} label="MATCH" C={C} />
+              <ScoreRing score={score} size={isMobile ? 64 : 80} label="MATCH" C={C} />
             </div>
             <div style={{ textAlign: "center" }}>
-              <ScoreRing score={ats_score || 0} size={60} label="ATS" C={C} />
+              <ScoreRing score={ats_score || 0} size={isMobile ? 48 : 60} label="ATS" C={C} />
             </div>
             <div style={{ textAlign: "center" }}>
-              <ScoreRing score={readability_score || 0} size={60} label="READ" C={C} />
+              <ScoreRing score={readability_score || 0} size={isMobile ? 48 : 60} label="READ" C={C} />
             </div>
           </div>
         </div>
@@ -515,13 +552,13 @@ function AnalysisResult({ result, jobTitle, resumeText, jdText, C }) {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 4, marginBottom: 16, background: C.surfaceAlt, padding: 4, borderRadius: 10, width: "fit-content" }}>
-        {tabs.map(t => <button key={t.key} style={tabStyle(t.key)} onClick={() => setActiveTab(t.key)}>{t.label}</button>)}
+      <div className="rae-scroll-x" style={{ display: "flex", gap: 4, marginBottom: 16, background: C.surfaceAlt, padding: 4, borderRadius: 10, width: "100%", flexWrap: isMobile ? "nowrap" : "wrap" }}>
+        {tabs.map(t => <button key={t.key} style={{ ...tabStyle(t.key), whiteSpace: "nowrap", flexShrink: 0 }} onClick={() => setActiveTab(t.key)}>{t.label}</button>)}
       </div>
 
       {/* OVERVIEW TAB */}
       {activeTab === "overview" && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14 }}>
           {/* Top Skills */}
           <div style={card}>
             <div style={{ fontSize: 12, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 12 }}>
@@ -584,7 +621,7 @@ function AnalysisResult({ result, jobTitle, resumeText, jdText, C }) {
 
       {/* SKILLS & SCORES TAB */}
       {activeTab === "skills" && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14 }}>
           <div style={card}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.5px" }}>
@@ -652,7 +689,7 @@ function AnalysisResult({ result, jobTitle, resumeText, jdText, C }) {
               </button>
             ))}
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 10 }}>
             {filteredSugs.map((sug, i) => {
               const prioColor = sug.priority === "high" ? "red" : sug.priority === "medium" ? "yellow" : "primary";
               return (
@@ -850,12 +887,12 @@ function HistoryCard({ item, onClick, C }) {
       onMouseOver={e => e.currentTarget.style.boxShadow = C.shadowHover}
       onMouseOut={e => e.currentTarget.style.boxShadow = C.shadow}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div>
-          <div style={{ fontWeight: 700, fontSize: 14, color: C.text, marginBottom: 3 }}>{item.job_title}</div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontWeight: 700, fontSize: 14, color: C.text, marginBottom: 3, wordBreak: "break-word" }}>{item.job_title}</div>
           <div style={{ fontSize: 12, color: C.textMuted }}>{new Date(item.created_at).toLocaleDateString()}</div>
         </div>
-        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
           <ScoreRing score={item.score} size={40} C={C} />
           <Badge color={color} C={C}>{item.score}/100</Badge>
         </div>
@@ -936,7 +973,7 @@ export default function App() {
   const textareaStyle = { ...inputStyle, resize: "vertical", minHeight: 110, lineHeight: 1.6 };
   const cardStyle = {
     background: C.surface, border: `1px solid ${C.border}`,
-    borderRadius: 12, padding: "20px 22px", boxShadow: C.shadow, marginBottom: 14,
+    borderRadius: 12, padding: "clamp(14px, 4vw, 20px) clamp(14px, 4vw, 22px)", boxShadow: C.shadow, marginBottom: 14,
   };
   const btnPrimary = {
     background: C.primary, color: "#FFF", border: "none",
@@ -953,30 +990,32 @@ export default function App() {
 
   return (
     <div style={{ fontFamily: "'Inter', system-ui, sans-serif", minHeight: "100vh", background: C.bg, color: C.text, transition: "background 0.2s, color 0.2s" }}>
+      <GlobalStyles />
       {/* NAV */}
       <nav style={{
         background: C.navBg, borderBottom: `1px solid ${C.border}`,
-        padding: "0 28px", display: "flex", alignItems: "center",
-        justifyContent: "space-between", height: 58,
+        padding: "10px clamp(12px, 4vw, 28px)", display: "flex", alignItems: "center",
+        justifyContent: "space-between", flexWrap: "wrap", gap: 8, rowGap: 8,
+        minHeight: 58,
         boxShadow: C.shadow, position: "sticky", top: 0, zIndex: 100,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontSize: 22 }}>📋</span>
-          <span style={{ fontWeight: 800, fontSize: 17, color: C.primary, letterSpacing: "-0.3px" }}>ResumeAI</span>
+          <span className="rae-logo-text" style={{ fontWeight: 800, fontSize: 17, color: C.primary, letterSpacing: "-0.3px" }}>ResumeAI</span>
           <Badge color="primary" C={C}>Pro</Badge>
         </div>
-        <div style={{ display: "flex", gap: 2 }}>
+        <div className="rae-nav-tabs rae-scroll-x" style={{ display: "flex", gap: 2 }}>
           {["analyze", "history", "about"].map(t => (
-            <button key={t} style={navTabStyle(t)} onClick={() => setTab(t)}>
-              {t === "analyze" ? "⚡ Analyzer" : t === "history" ? `📂 History (${history.length})` : "ℹ️ About"}
+            <button key={t} style={{ ...navTabStyle(t), whiteSpace: "nowrap" }} onClick={() => setTab(t)}>
+              {t === "analyze" ? <>⚡ <span className="rae-nav-tab-label">Analyzer</span></> : t === "history" ? <>📂 <span className="rae-nav-tab-label">History ({history.length})</span></> : <>ℹ️ <span className="rae-nav-tab-label">About</span></>}
             </button>
           ))}
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <button
             onClick={() => setShowSettings(s => !s)}
-            style={{ background: showSettings ? C.primaryLight : "transparent", color: C.textSub, border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontSize: 14, fontWeight: 600 }}>
-            ⚙️ API Config
+            style={{ background: showSettings ? C.primaryLight : "transparent", color: C.textSub, border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontSize: 14, fontWeight: 600, whiteSpace: "nowrap" }}>
+            ⚙️ <span className="rae-nav-tab-label">API Config</span>
           </button>
           <button
             onClick={() => setDarkMode(d => !d)}
@@ -990,7 +1029,7 @@ export default function App() {
       {showSettings && (
         <div style={{
           background: C.surface, borderBottom: `1px solid ${C.border}`,
-          padding: "16px 28px", display: "flex", alignItems: "center",
+          padding: "16px clamp(12px, 4vw, 28px)", display: "flex", alignItems: "center",
           gap: 12, flexWrap: "wrap",
         }}>
           <span style={{ fontSize: 13, fontWeight: 600, color: C.textSub }}>API Configuration:</span>
@@ -1004,13 +1043,13 @@ export default function App() {
       )}
 
       {/* MAIN CONTENT */}
-      <main style={{ maxWidth: 1020, margin: "0 auto", padding: "28px 20px" }}>
+      <main style={{ maxWidth: 1020, margin: "0 auto", padding: "clamp(16px, 5vw, 28px) clamp(12px, 4vw, 20px)" }}>
 
         {/* ANALYZE TAB */}
         {tab === "analyze" && (
           <>
             <div style={{ marginBottom: 24 }}>
-              <h1 style={{ margin: "0 0 4px", fontSize: 26, fontWeight: 800, color: C.text, letterSpacing: "-0.4px" }}>
+              <h1 style={{ margin: "0 0 4px", fontSize: "clamp(20px, 5vw, 26px)", fontWeight: 800, color: C.text, letterSpacing: "-0.4px" }}>
                 Resume Analyzer
               </h1>
               <p style={{ margin: 0, color: C.textMuted, fontSize: 14 }}>
@@ -1018,7 +1057,7 @@ export default function App() {
               </p>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 14 }}>
               {/* Resume Input */}
               <div style={cardStyle}>
                 <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 14, color: C.text }}>📄 Your Resume</div>
@@ -1100,9 +1139,9 @@ export default function App() {
         {/* HISTORY TAB */}
         {tab === "history" && (
           <>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 10 }}>
               <div>
-                <h1 style={{ margin: "0 0 4px", fontSize: 24, fontWeight: 800, color: C.text }}>Analysis History</h1>
+                <h1 style={{ margin: "0 0 4px", fontSize: "clamp(20px, 5vw, 24px)", fontWeight: 800, color: C.text }}>Analysis History</h1>
                 <p style={{ margin: 0, color: C.textMuted, fontSize: 13 }}>Your last {history.length} analyses · Saved locally in your browser</p>
               </div>
               {history.length > 0 && (
@@ -1121,7 +1160,7 @@ export default function App() {
             ) : (
               <>
                 {/* Stats row */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 20 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12, marginBottom: 20 }}>
                   {[
                     { label: "Total Analyses", value: history.length, icon: "📊" },
                     { label: "Average Score", value: Math.round(history.reduce((a, h) => a + h.score, 0) / history.length) + "%", icon: "🎯" },
@@ -1155,7 +1194,7 @@ export default function App() {
         {/* ABOUT TAB */}
         {tab === "about" && (
           <div style={{ maxWidth: 660 }}>
-            <h1 style={{ margin: "0 0 8px", fontSize: 24, fontWeight: 800 }}>About ResumeAI</h1>
+            <h1 style={{ margin: "0 0 8px", fontSize: "clamp(20px, 5vw, 24px)", fontWeight: 800 }}>About ResumeAI</h1>
             <p style={{ color: C.textMuted, fontSize: 14, marginBottom: 28 }}>An open, browser-based AI resume analyzer</p>
 
             {[
